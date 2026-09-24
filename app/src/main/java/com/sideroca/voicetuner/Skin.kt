@@ -146,25 +146,42 @@ object Skin {
         }
     }
 
+    private val BG_RES = intArrayOf(
+        R.drawable.bg_card, R.drawable.bg_input, R.drawable.bg_btn,
+        R.drawable.bg_chip, R.drawable.bg_row, R.drawable.bg_btn_primary
+    )
+
     private fun repaintBg(v: View, c: Colors, d: Float) {
         val gd = v.background as? GradientDrawable ?: return
-        if (gd.orientation != null) {
-            // 主按钮渐变（acc → acc2）
-            if (near(gd.cornerRadius, 12f * d)) v.background = grad(c.acc, c.acc2, 12f * d)
-            return
-        }
-        // 注：部分版本读不到 strokeWidth，改用「半径 + 标记」分类
+        // 按「圆角半径」识别角色（不依赖渐变方向——纯色形状的渐变方向字段也可能非空）
         val r = gd.cornerRadius
-        val sel = v.isSelected
+        var role = 0
         when {
-            near(r, 14f * d) -> v.background = shape(c.card, c.line, 14f * d, c.cardAlphaPct, d)
-            near(r, 100f * d) -> if (!sel) v.background = shape(c.card2, c.line, 100f * d, 100, d)
-            near(r, 10f * d) -> if (v.tag == "r:row") {
-                v.background = shape(c.row, null, 10f * d, 100, 0f)
-            } else {
-                v.background = shape(c.card2, if (sel) c.acc else c.line, 10f * d, 100, if (sel) 3f else d)
-            }
+            near(r, 12f * d) -> role = R.drawable.bg_btn_primary
+            near(r, 14f * d) -> role = R.drawable.bg_card
+            near(r, 100f * d) -> role = R.drawable.bg_chip
+            near(r, 10f * d) -> role = if (v.tag == "r:row") R.drawable.bg_row else R.drawable.bg_btn
         }
+        if (role == 0) role = matchByConstantState(v, gd)
+        val sel = v.isSelected
+        when (role) {
+            R.drawable.bg_btn_primary -> v.background = grad(c.acc, c.acc2, 12f * d)
+            R.drawable.bg_card -> v.background = shape(c.card, c.line, 14f * d, c.cardAlphaPct, d)
+            R.drawable.bg_chip -> if (!sel) v.background = shape(c.card2, c.line, 100f * d, 100, d)
+            R.drawable.bg_row -> v.background = shape(c.row, null, 10f * d, 100, 0f)
+            R.drawable.bg_input, R.drawable.bg_btn ->
+                v.background = shape(c.card2, if (sel) c.acc else c.line, 10f * d, 100, if (sel) 3f else d)
+        }
+    }
+
+    /** 备用识别：与同资源同主题新加载的 drawable 比对 ConstantState */
+    private fun matchByConstantState(v: View, gd: GradientDrawable): Int {
+        val cs = gd.constantState ?: return 0
+        for (id in BG_RES) {
+            val ref = androidx.core.content.ContextCompat.getDrawable(v.context, id) ?: continue
+            if (ref.constantState == cs) return id
+        }
+        return 0
     }
 
     private fun near(a: Float, b: Float): Boolean = a > 0f && abs(a - b) <= 2.5f

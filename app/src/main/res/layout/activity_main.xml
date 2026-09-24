@@ -60,11 +60,18 @@
         </LinearLayout>
 
         <!-- 音色 & 文本 -->
-        <LinearLayout style="@style/VtCard">
+        <LinearLayout
+            style="@style/VtCard"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:baselineAligned="false"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -72,13 +79,14 @@
                     style="@style/VtLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="0dp"
                     android:layout_weight="1"
                     android:text="音色" />
 
                 <TextView
                     android:id="@+id/btnCreateVoice"
                     style="@style/VtMiniBtn"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="0dp"
                     android:layout_marginEnd="0dp"
                     android:text="＋ 建音色" />
             </LinearLayout>
@@ -452,7 +460,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="20dp"
             android:gravity="center"
-            android:text="v0.4 · 直连阿里云百炼 CosyVoice v3.5-plus"
+            android:text="v0.4.1 · 直连阿里云百炼 CosyVoice v3.5-plus"
             android:textColor="@color/hint"
             android:textSize="11sp" />
     </LinearLayout>

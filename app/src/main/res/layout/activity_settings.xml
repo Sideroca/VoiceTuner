@@ -312,7 +312,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:lineSpacingExtra="3dp"
-                    android:text="语音调控台 v0.4 · 桌面名「玲珑调音」\n直连阿里云百炼 CosyVoice v3.5-plus · 支持自建音色（可一次多选样本，自动合并）\n配色方案：现代经典 18 + 中国传统色 46（共 64 套）\n主题与壁纸均只保存在本机"
+                    android:text="语音调控台 v0.4.1 · 桌面名「玲珑调音」\n直连阿里云百炼 CosyVoice v3.5-plus · 支持自建音色（可一次多选样本，自动合并）\n配色方案：现代经典 18 + 中国传统色 46（共 64 套）\n主题与壁纸均只保存在本机"
                     android:textColor="@color/dim"
                     android:textSize="13sp" />
             </LinearLayout>
@@ -323,7 +323,7 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="20dp"
                 android:gravity="center"
-                android:text="v0.4 · 语音调控台（玲珑调音）"
+                android:text="v0.4.1 · 语音调控台（玲珑调音）"
                 android:textColor="@color/hint"
                 android:textSize="11sp" />
         </LinearLayout>
