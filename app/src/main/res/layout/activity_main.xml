@@ -299,7 +299,7 @@
             android:focusable="true"
             android:gravity="center"
             android:padding="15dp"
-            android:text="⚡ 生成"
+            android:text="生成"
             android:textColor="#FFFFFF"
             android:textSize="17sp"
             android:textStyle="bold" />
