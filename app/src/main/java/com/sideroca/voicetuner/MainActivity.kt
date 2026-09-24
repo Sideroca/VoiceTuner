@@ -16,8 +16,10 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.OpenableColumns
+import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
+import android.text.TextWatcher
 import android.util.Base64
 import android.view.View
 import android.view.ViewGroup
@@ -96,6 +98,14 @@ class MainActivity : AppCompatActivity() {
         InstrChip("艾雅法拉·害羞", "声音轻软迟疑，带一点腼腆和试探", "艾雅法拉")
     )
 
+    // ---------------------------------------------------------------- 语言选择（预置）
+    private val langPresets = listOf(
+        "zh" to "中文", "en" to "英语", "ja" to "日语", "ko" to "韩语",
+        "de" to "德语", "fr" to "法语", "ru" to "俄语", "es" to "西班牙语",
+        "it" to "意大利语", "pt" to "葡萄牙语", "th" to "泰语", "vi" to "越南语", "id" to "印尼语"
+    )
+    private val langSel = LinkedHashSet<String>()
+
     private val cTxt = Color.parseColor("#E8EEF8")
     private val cDim = Color.parseColor("#8D99AD")
 
@@ -149,7 +159,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvAdvanced: TextView
     private lateinit var llAdvanced: LinearLayout
     private lateinit var etModel: EditText
-    private lateinit var etLangHints: EditText
+    private lateinit var etLangHints: TextView
     private lateinit var etHotfix: EditText
     private lateinit var etExtra: EditText
     private lateinit var cbSsml: CheckBox
@@ -340,6 +350,7 @@ class MainActivity : AppCompatActivity() {
         btnShare.setOnClickListener { currentTake?.let { shareTake(it) } }
         btnExport.setOnClickListener { currentTake?.let { exportTake(it) } }
         btnClearHistory.setOnClickListener { confirmClearHistory() }
+        etLangHints.setOnClickListener { openLangPicker() }
     }
 
     private fun syncVoiceUi() {
@@ -400,6 +411,89 @@ class MainActivity : AppCompatActivity() {
         Skin.apply(llChips, Skin.colors(this))
     }
 
+    // ---------------------------------------------------------------- 语言选择
+    private fun openLangPicker() {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(20), dp(10), dp(20), dp(4))
+
+        val etSearch = EditText(this)
+        etSearch.hint = "搜索语言（中文 / zh / ja…）"
+        etSearch.inputType = InputType.TYPE_CLASS_TEXT
+        etSearch.setTextColor(cTxt)
+        etSearch.setHintTextColor(cDim)
+        etSearch.textSize = 14f
+        box.addView(etSearch)
+
+        val listBox = LinearLayout(this)
+        listBox.orientation = LinearLayout.VERTICAL
+        box.addView(listBox)
+
+        etSearch.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                renderLangList(listBox, etSearch)
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+        renderLangList(listBox, etSearch)
+
+        val sc = ScrollView(this)
+        sc.addView(box)
+
+        val dlg = AlertDialog.Builder(this)
+            .setTitle("选择语言（可多选）")
+            .setView(sc)
+            .setPositiveButton("确定") { _, _ -> applyLangSel() }
+            .setNeutralButton("清空") { _, _ ->
+                langSel.clear()
+                applyLangSel()
+            }
+            .setNegativeButton("取消", null)
+            .create()
+        dlg.setOnShowListener { Skin.apply(dlg.window!!.decorView, Skin.colors(this)) }
+        dlg.show()
+    }
+
+    private fun renderLangList(listBox: LinearLayout, etSearch: EditText) {
+        listBox.removeAllViews()
+        val f = etSearch.text.toString().trim().lowercase(Locale.US)
+        val items = langPresets.filter {
+            f.isEmpty() || it.first.contains(f) || it.second.lowercase(Locale.US).contains(f)
+        }
+        if (items.isEmpty()) {
+            val tv = TextView(this)
+            tv.text = "没有匹配的语言"
+            tv.setTextColor(cDim)
+            tv.textSize = 13f
+            tv.setPadding(0, dp(10), 0, dp(6))
+            listBox.addView(tv)
+            return
+        }
+        for ((code, name) in items) {
+            val row = TextView(this)
+            val sel = code in langSel
+            row.text = (if (sel) "✓ " else "　 ") + name + "（" + code + "）"
+            row.setTextColor(if (sel) cTxt else cDim)
+            row.textSize = 14f
+            row.setPadding(dp(4), dp(10), dp(4), dp(10))
+            row.isClickable = true
+            row.isFocusable = true
+            row.setOnClickListener {
+                if (code in langSel) langSel.remove(code) else langSel.add(code)
+                renderLangList(listBox, etSearch)
+            }
+            listBox.addView(row)
+        }
+    }
+
+    private fun applyLangSel() {
+        val names = langSel.map { code -> langPresets.firstOrNull { it.first == code }?.second ?: code }
+        etLangHints.text = names.joinToString("、")
+    }
+
     // ---------------------------------------------------------------- 生成
     private fun generate(seedOverride: Int?) {
         if (busy) {
@@ -446,11 +540,7 @@ class MainActivity : AppCompatActivity() {
         val instr = etInstr.text.toString().trim().take(128)
         val model = etModel.text.toString().trim().ifEmpty { "cosyvoice-v3.5-plus" }
         store.lastModel = model
-        val hints = etLangHints.text.toString()
-            .split(',', '，', ' ', '、')
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .ifEmpty { null }
+        val hints = langSel.toList().ifEmpty { null }
 
         val req = SynthRequest(
             apiKey = key,

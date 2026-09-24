@@ -114,7 +114,10 @@ object Skin {
                 textRole(v)?.let { paintText(v, it, c) }
                 v.setHintTextColor(c.hint)
             }
-            is TextView -> textRole(v)?.let { paintText(v, it, c) }
+            is TextView -> {
+                textRole(v)?.let { paintText(v, it, c) }
+                if (v.hint != null) v.setHintTextColor(c.hint)
+            }
         }
         if (v is CompoundButton) v.buttonTintList = ColorStateList.valueOf(c.acc)
         repaintBg(v, c, d)
