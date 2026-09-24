@@ -25,16 +25,19 @@ object Skin {
     class Colors(
         val bg: Int, val card: Int, val card2: Int, val line: Int, val row: Int,
         val txt: Int, val dim: Int, val hint: Int, val acc: Int, val acc2: Int,
-        val light: Boolean, val cardAlphaPct: Int
+        val light: Boolean, val cardAlphaPct: Int, val isOriginal: Boolean
     ) {
-        val onAcc: Int get() = Color.WHITE
+        /** 按钮上的文字颜色（亮底自动切深字） */
+        val onAcc: Int =
+            if (0.299f * Color.red(acc) + 0.587f * Color.green(acc) + 0.114f * Color.blue(acc) > 160f) 0xFF11151C.toInt()
+            else Color.WHITE
 
         companion object {
             /** 本机原色（v0.1 深蓝） */
             fun original(cardAlphaPct: Int): Colors = Colors(
                 0xFF0E1116.toInt(), 0xFF151A22.toInt(), 0xFF1B2230.toInt(), 0xFF26303F.toInt(), 0xFF171D27.toInt(),
                 0xFFE8EEF8.toInt(), 0xFF8D99AD.toInt(), 0xFF6B7689.toInt(),
-                0xFF4F8CFF.toInt(), 0xFF7A5CFF.toInt(), false, cardAlphaPct
+                0xFF4F8CFF.toInt(), 0xFF7A5CFF.toInt(), false, cardAlphaPct, true
             )
 
             /** 由一套配色推导本应用的角色色 */
@@ -52,7 +55,8 @@ object Skin {
                     acc = p.accent,
                     acc2 = if (p.barBg != 0) p.barBg else mix(p.accent, p.text, 0.25f),
                     light = !p.dark,
-                    cardAlphaPct = cardAlphaPct
+                    cardAlphaPct = cardAlphaPct,
+                    isOriginal = false
                 )
             }
 
@@ -165,7 +169,8 @@ object Skin {
         if (role == 0) role = matchByConstantState(v, gd)
         val sel = v.isSelected
         when (role) {
-            R.drawable.bg_btn_primary -> v.background = grad(c.acc, c.acc2, 12f * d)
+            R.drawable.bg_btn_primary -> v.background =
+                if (c.isOriginal) grad(c.acc, c.acc2, 12f * d) else shape(c.acc, null, 12f * d, 100, 0f)
             R.drawable.bg_card -> v.background = shape(c.card, c.line, 14f * d, c.cardAlphaPct, d)
             R.drawable.bg_chip -> if (!sel) v.background = shape(c.card2, c.line, 100f * d, 100, d)
             R.drawable.bg_row -> v.background = shape(c.row, null, 10f * d, 100, 0f)

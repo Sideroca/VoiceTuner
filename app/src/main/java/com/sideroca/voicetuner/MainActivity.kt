@@ -253,6 +253,12 @@ class MainActivity : AppCompatActivity() {
             setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         }
 
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val v = super.getView(position, convertView, parent)
+            (v as? TextView)?.setTextColor(Skin.colors(parent.context).txt)
+            return v
+        }
+
         override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
             val v = super.getDropDownView(position, convertView, parent)
             (v as? TextView)?.setTextColor(Skin.colors(parent.context).txt)

@@ -456,7 +456,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="20dp"
             android:gravity="center"
-            android:text="v0.4.2 · 直连阿里云百炼 CosyVoice v3.5-plus"
+            android:text="v0.4.3 · 直连阿里云百炼 CosyVoice v3.5-plus"
             android:textColor="@color/hint"
             android:textSize="11sp" />
     </LinearLayout>
