@@ -198,6 +198,12 @@ class MainActivity : AppCompatActivity() {
         Skin.applyWindow(this, c)
         Skin.apply(window.decorView, c)
         Wp.applySlot(this, wpImg, wpScrim, store.wpMain, store.scrimMain, c.bg)
+        // 下拉浮层：底色 / 描边 / 宽度 跟随主题
+        val ddw = resources.displayMetrics.widthPixels - dp(28)
+        spVoice.setPopupBackgroundDrawable(Skin.shapeDp(this, c.bg, c.line, 12f))
+        spVoice.setDropDownWidth(ddw)
+        spFormat.setPopupBackgroundDrawable(Skin.shapeDp(this, c.bg, c.line, 12f))
+        spFormat.setDropDownWidth(ddw)
     }
 
     private fun bindViews() {
@@ -240,6 +246,20 @@ class MainActivity : AppCompatActivity() {
         llHistory = findViewById(R.id.llHistory)
     }
 
+    /** 下拉浮层适配器：浮层条目文字颜色跟随主题（其余沿用系统样式） */
+    private class ThemedSpinnerAdapter(ctx: Context, items: List<String>) :
+        ArrayAdapter<String>(ctx, android.R.layout.simple_spinner_item, items) {
+        init {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+
+        override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val v = super.getDropDownView(position, convertView, parent)
+            (v as? TextView)?.setTextColor(Skin.colors(parent.context).txt)
+            return v
+        }
+    }
+
     private fun setupSpinners() {
         rebuildVoiceSpinner(null)
         spVoice.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -250,9 +270,7 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        val fmtAdapter = ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, formats.map { it.label })
-        fmtAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spFormat.adapter = fmtAdapter
+        spFormat.adapter = ThemedSpinnerAdapter(this, formats.map { it.label })
 
         etModel.setText(store.lastModel)
         syncVoiceUi()
@@ -266,9 +284,7 @@ class MainActivity : AppCompatActivity() {
     private fun rebuildVoiceSpinner(selectId: String?) {
         val all = allVoices()
         val names = all.map { it.name } + customLabel
-        val adapter = ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, names)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spVoice.adapter = adapter
+        spVoice.adapter = ThemedSpinnerAdapter(this, names)
         if (selectId != null) {
             val idx = all.indexOfFirst { it.id == selectId }
             if (idx >= 0) spVoice.setSelection(idx)

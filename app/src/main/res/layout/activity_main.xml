@@ -75,13 +75,15 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <TextView
-                    style="@style/VtLabel"
+                <Spinner
+                    android:id="@+id/spVoice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <Space
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="0dp"
-                    android:layout_weight="1"
-                    android:text="音色" />
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
 
                 <TextView
                     android:id="@+id/btnCreateVoice"
@@ -90,12 +92,6 @@
                     android:layout_marginEnd="0dp"
                     android:text="＋ 建音色" />
             </LinearLayout>
-
-            <Spinner
-                android:id="@+id/spVoice"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp" />
 
             <EditText
                 android:id="@+id/etCustomVoice"
@@ -460,7 +456,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="20dp"
             android:gravity="center"
-            android:text="v0.4.1 · 直连阿里云百炼 CosyVoice v3.5-plus"
+            android:text="v0.4.2 · 直连阿里云百炼 CosyVoice v3.5-plus"
             android:textColor="@color/hint"
             android:textSize="11sp" />
     </LinearLayout>
