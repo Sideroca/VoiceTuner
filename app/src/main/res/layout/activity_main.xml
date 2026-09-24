@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/svRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <!-- 顶部 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🎛️ 语音调控台"
+                android:textColor="@color/txt"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnSettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_btn"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="8dp"
+                android:text="设置"
+                android:textColor="@color/dim"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- 音色 & 文本 -->
+        <LinearLayout style="@style/VtCard">
+
+            <TextView style="@style/VtLabel" android:text="音色" />
+
+            <Spinner
+                android:id="@+id/spVoice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" />
+
+            <EditText
+                android:id="@+id/etCustomVoice"
+                style="@style/VtInput"
+                android:hint="粘贴完整音色 ID（cosyvoice-v3.5-plus-…）"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:singleLine="true"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvVoiceNote"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/dim"
+                android:textSize="12sp" />
+
+            <TextView style="@style/VtLabel" android:text="文本" />
+
+            <EditText
+                android:id="@+id/etText"
+                style="@style/VtInput"
+                android:gravity="top|start"
+                android:hint="要合成的文本…"
+                android:importantForAutofill="no"
+                android:inputType="textMultiLine"
+                android:minLines="3" />
+
+            <TextView style="@style/VtLabel" android:text="情绪 / 风格指令（≤128 字）" />
+
+            <EditText
+                android:id="@+id/etInstr"
+                style="@style/VtInput"
+                android:hint="如：语气自信从容，句间有停顿，语速偏慢"
+                android:importantForAutofill="no"
+                android:inputType="textMultiLine"
+                android:minLines="2" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/llChips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+        </LinearLayout>
+
+        <!-- 参数 -->
+        <LinearLayout style="@style/VtCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="种子"
+                    android:textColor="@color/dim"
+                    android:textSize="13sp" />
+
+                <EditText
+                    android:id="@+id/etSeed"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_input"
+                    android:hint="留空 = 每次随机"
+                    android:importantForAutofill="no"
+                    android:inputType="number"
+                    android:padding="9dp"
+                    android:singleLine="true"
+                    android:textColor="@color/txt"
+                    android:textColorHint="@color/hint"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/btnDice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_btn"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="8dp"
+                    android:text="🎲"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/VtSliderRow">
+                <TextView style="@style/VtSliderLabel" android:text="语速" />
+                <SeekBar
+                    android:id="@+id/sbRate"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="150" />
+                <TextView
+                    android:id="@+id/tvRate"
+                    style="@style/VtSliderValue"
+                    android:text="1.00" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/VtSliderRow">
+                <TextView style="@style/VtSliderLabel" android:text="音调" />
+                <SeekBar
+                    android:id="@+id/sbPitch"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="150" />
+                <TextView
+                    android:id="@+id/tvPitch"
+                    style="@style/VtSliderValue"
+                    android:text="1.00" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/VtSliderRow">
+                <TextView style="@style/VtSliderLabel" android:text="音量" />
+                <SeekBar
+                    android:id="@+id/sbVol"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="100" />
+                <TextView
+                    android:id="@+id/tvVol"
+                    style="@style/VtSliderValue"
+                    android:text="50" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="格式"
+                    android:textColor="@color/dim"
+                    android:textSize="13sp" />
+
+                <Spinner
+                    android:id="@+id/spFormat"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvAdvanced"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingVertical="6dp"
+                android:text="高级参数 ▸"
+                android:textColor="@color/dim"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:id="@+id/llAdvanced"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView style="@style/VtLabel" android:text="model" />
+
+                <EditText
+                    android:id="@+id/etModel"
+                    style="@style/VtInput"
+                    android:hint="cosyvoice-v3.5-plus"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:singleLine="true" />
+
+                <TextView style="@style/VtLabel" android:text="language_hints（逗号分隔）" />
+
+                <EditText
+                    android:id="@+id/etLangHints"
+                    style="@style/VtInput"
+                    android:hint="zh"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:singleLine="true" />
+
+                <TextView style="@style/VtLabel" android:text="hot_fix（JSON）" />
+
+                <EditText
+                    android:id="@+id/etHotfix"
+                    style="@style/VtInput"
+                    android:gravity="top|start"
+                    android:hint='{"replace":[{"错词":"正词"}]}'
+                    android:importantForAutofill="no"
+                    android:inputType="textMultiLine"
+                    android:minLines="2" />
+
+                <TextView style="@style/VtLabel" android:text="额外参数（JSON，合并进 parameters）" />
+
+                <EditText
+                    android:id="@+id/etExtra"
+                    style="@style/VtInput"
+                    android:gravity="top|start"
+                    android:hint='{"enable_markdown_filter":false}'
+                    android:importantForAutofill="no"
+                    android:inputType="textMultiLine"
+                    android:minLines="2" />
+
+                <CheckBox
+                    android:id="@+id/cbSsml"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:checked="true"
+                    android:text="SSML 模式（enable_ssml）"
+                    android:textColor="@color/dim"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 生成 -->
+        <TextView
+            android:id="@+id/btnGenerate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_btn_primary"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:padding="15dp"
+            android:text="⚡ 生成"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnCancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_btn"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:padding="11dp"
+            android:text="取消"
+            android:textColor="@color/dim"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/dim"
+            android:textSize="13sp" />
+
+        <!-- 结果 -->
+        <LinearLayout
+            android:id="@+id/cardResult"
+            style="@style/VtCard"
+            android:visibility="gone">
+
+            <TextView style="@style/VtLabel" android:text="本次结果" />
+
+            <TextView
+                android:id="@+id/tvResultInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="@color/txt"
+                android:textSize="14sp" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btnPlay"
+                        style="@style/VtMiniBtn"
+                        android:text="▶ 播放" />
+
+                    <TextView
+                        android:id="@+id/btnShare"
+                        style="@style/VtMiniBtn"
+                        android:text="分享" />
+
+                    <TextView
+                        android:id="@+id/btnExport"
+                        style="@style/VtMiniBtn"
+                        android:text="导出到下载" />
+                </LinearLayout>
+            </HorizontalScrollView>
+        </LinearLayout>
+
+        <!-- 历史 -->
+        <LinearLayout style="@style/VtCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="本地记录"
+                    android:textColor="@color/dim"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/btnClearHistory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_btn"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="6dp"
+                    android:text="清空"
+                    android:textColor="@color/dim"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/llHistory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="20dp"
+            android:gravity="center"
+            android:text="v0.1 · 直连阿里云百炼 CosyVoice v3.5-plus"
+            android:textColor="@color/hint"
+            android:textSize="11sp" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0E1116</color>
+    <color name="card">#151A22</color>
+    <color name="card2">#1B2230</color>
+    <color name="line">#26303F</color>
+    <color name="row">#171D27</color>
+    <color name="txt">#E8EEF8</color>
+    <color name="dim">#8D99AD</color>
+    <color name="hint">#6B7689</color>
+    <color name="acc">#4F8CFF</color>
+    <color name="acc2">#7A5CFF</color>
+    <color name="icon_bg">#151A22</color>
+</resources>

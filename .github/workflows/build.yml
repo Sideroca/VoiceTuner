@@ -1,0 +1,70 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+concurrency:
+  group: voicetuner-build
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: |
+          cd app/build/outputs/apk/debug
+          f=$(ls -1 *.apk 2>/dev/null | head -1)
+          if [ -z "$f" ]; then echo "未找到 APK"; exit 1; fi
+          mv "$f" VoiceTuner.apk
+          ls -l VoiceTuner.apk
+
+      - name: Upload APK (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceTuner-apk
+          path: app/build/outputs/apk/debug/VoiceTuner.apk
+
+      # ===== 手机书签一个直链，永远下最新版 =====
+      # https://github.com/Sideroca/VoiceTuner/releases/latest/download/VoiceTuner.apk
+      - name: 更新「latest」直链发布
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          APK=app/build/outputs/apk/debug/VoiceTuner.apk
+          # 有旧发布就覆盖上传（避免"删了建不回来"的空窗）
+          if gh release view latest >/dev/null 2>&1; then
+            gh release upload latest "$APK" --clobber
+            gh release edit latest --latest
+          else
+            gh release create latest "$APK" \
+              --title "语音调控台 · 最新构建（latest）" \
+              --notes "每次推送自动更新。直接点 Assets 里的 VoiceTuner.apk 下载安装（覆盖安装即可）。" \
+              --latest
+          fi
+          # 把 latest 标签指向本次提交（失败不致命）
+          git tag -f latest "$GITHUB_SHA"
+          git push -f origin latest || true
