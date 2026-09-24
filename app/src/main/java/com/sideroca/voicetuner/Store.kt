@@ -57,12 +57,37 @@ data class Take(
     }
 }
 
+/** 自建复刻音色 */
+data class CustomVoice(
+    val id: String,
+    val name: String,
+    val prefix: String,
+    val createdAt: Long
+) {
+    fun toJson(): JSONObject = JSONObject().apply {
+        put("id", id)
+        put("name", name)
+        put("prefix", prefix)
+        put("createdAt", createdAt)
+    }
+
+    companion object {
+        fun fromJson(o: JSONObject): CustomVoice = CustomVoice(
+            id = o.optString("id"),
+            name = o.optString("name"),
+            prefix = o.optString("prefix"),
+            createdAt = o.optLong("createdAt", 0)
+        )
+    }
+}
+
 /** 本机存储：设置 + 历史记录 */
 class Store(context: Context) {
 
     private val prefs = context.getSharedPreferences("vt", Context.MODE_PRIVATE)
     private val dir: File = File(context.filesDir, "history").apply { mkdirs() }
     private val indexFile = File(dir, "index.json")
+    private val voicesFile = File(context.filesDir, "custom_voices.json")
 
     var apiKey: String
         get() = prefs.getString("apiKey", "") ?: ""
@@ -109,6 +134,31 @@ class Store(context: Context) {
             val arr = JSONArray()
             takes.forEach { arr.put(it.toJson()) }
             indexFile.writeText(arr.toString())
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
+    fun loadCustomVoices(): MutableList<CustomVoice> {
+        val list = mutableListOf<CustomVoice>()
+        try {
+            if (voicesFile.exists()) {
+                val arr = JSONArray(voicesFile.readText())
+                for (i in 0 until arr.length()) {
+                    list.add(CustomVoice.fromJson(arr.getJSONObject(i)))
+                }
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+        return list
+    }
+
+    fun saveCustomVoices(list: List<CustomVoice>) {
+        try {
+            val arr = JSONArray()
+            list.forEach { arr.put(it.toJson()) }
+            voicesFile.writeText(arr.toString())
         } catch (e: Exception) {
             // ignore
         }

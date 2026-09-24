@@ -66,6 +66,13 @@ class DashScopeClient {
         .readTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    // 复刻音色创建：要上传样本，单独放宽超时
+    private val enrollClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .build()
+
     private var ws: WebSocket? = null
 
     @Volatile
@@ -215,6 +222,64 @@ class DashScopeClient {
                             list.add(o.optString("voice_id") to o.optString("gmt_create"))
                         }
                         onResult(list)
+                    } catch (e: Exception) {
+                        onError("解析失败：" + s.take(160))
+                    }
+                }
+            }
+        })
+        return object : Cancellable {
+            override fun cancel() {
+                call.cancel()
+            }
+        }
+    }
+
+    /** 创建复刻音色（customization: create_voice），成功回调 voice_id */
+    fun createVoice(
+        apiKey: String,
+        workspace: String,
+        targetModel: String,
+        prefix: String,
+        dataUri: String,
+        onResult: (String) -> Unit,
+        onError: (String) -> Unit
+    ): Cancellable {
+        val input = JSONObject().apply {
+            put("action", "create_voice")
+            put("target_model", targetModel)
+            put("prefix", prefix)
+            put("url", dataUri)
+        }
+        val body = JSONObject().apply {
+            put("model", "voice-enrollment")
+            put("input", input)
+        }
+        val request = Request.Builder()
+            .url("https://" + workspace + ".cn-beijing.maas.aliyuncs.com/api/v1/services/audio/tts/customization")
+            .header("Authorization", "Bearer " + apiKey)
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+        val call = enrollClient.newCall(request)
+        call.enqueue(object : Callback {
+            override fun onFailure(c: Call, e: IOException) {
+                onError(e.message ?: "网络请求失败")
+            }
+
+            override fun onResponse(c: Call, response: Response) {
+                response.use { resp ->
+                    val s = resp.body?.string() ?: ""
+                    try {
+                        val j = JSONObject(s)
+                        val vid = j.optJSONObject("output")?.optString("voice_id") ?: ""
+                        if (resp.isSuccessful && vid.isNotBlank()) {
+                            onResult(vid)
+                        } else {
+                            val msg = j.optString("message")
+                                .ifBlank { j.optString("code") }
+                                .ifBlank { "创建失败（HTTP " + resp.code + "）" }
+                            onError(msg)
+                        }
                     } catch (e: Exception) {
                         onError("解析失败：" + s.take(160))
                     }

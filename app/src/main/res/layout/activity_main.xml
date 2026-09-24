@@ -45,7 +45,26 @@
         <!-- 音色 & 文本 -->
         <LinearLayout style="@style/VtCard">
 
-            <TextView style="@style/VtLabel" android:text="音色" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/VtLabel"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="音色" />
+
+                <TextView
+                    android:id="@+id/btnCreateVoice"
+                    style="@style/VtMiniBtn"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="0dp"
+                    android:text="＋ 建音色" />
+            </LinearLayout>
 
             <Spinner
                 android:id="@+id/spVoice"
@@ -416,7 +435,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="20dp"
             android:gravity="center"
-            android:text="v0.1 · 直连阿里云百炼 CosyVoice v3.5-plus"
+            android:text="v0.2 · 直连阿里云百炼 CosyVoice v3.5-plus · 支持自建音色"
             android:textColor="@color/hint"
             android:textSize="11sp" />
     </LinearLayout>

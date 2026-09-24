@@ -3,6 +3,7 @@ package com.sideroca.voicetuner
 import android.content.ClipboardManager
 import android.content.ContentValues
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Color
 import android.media.MediaMetadataRetriever
@@ -14,7 +15,10 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import android.provider.OpenableColumns
+import android.text.InputFilter
 import android.text.InputType
+import android.util.Base64
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
@@ -41,7 +45,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * 语音调控台 v0.1
+ * 语音调控台 v0.2
  * 调参面板 → 百炼 CosyVoice 直连合成 → 试听 / 保存 / 分享 → 本地记录（回填、重抽）
  */
 class MainActivity : AppCompatActivity() {
@@ -101,6 +105,19 @@ class MainActivity : AppCompatActivity() {
 
     private val takes = mutableListOf<Take>()
     private val rowRefs = mutableListOf<RowRef>()
+    private val customVoices = mutableListOf<CustomVoice>()
+
+    // 建音色（声音复刻）
+    private val REQ_PICK_AUDIO = 1001
+    private val MAX_SAMPLE_BYTES = 15L * 1024 * 1024
+    private var createDlg: AlertDialog? = null
+    private var createFileTv: TextView? = null
+    private var createStatus: TextView? = null
+    private var createPrefixEt: EditText? = null
+    private var createNameEt: EditText? = null
+    private var pendingSample: File? = null
+    private var pendingSampleDurMs = 0L
+    private var pendingSampleMime = "audio/wav"
 
     private var player: MediaPlayer? = null
     private var playingId: String? = null
@@ -113,6 +130,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var spVoice: Spinner
     private lateinit var etCustomVoice: EditText
     private lateinit var tvVoiceNote: TextView
+    private lateinit var btnCreateVoice: TextView
     private lateinit var etText: EditText
     private lateinit var etInstr: EditText
     private lateinit var llChips: LinearLayout
@@ -148,6 +166,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         store = Store(this)
+        customVoices.addAll(store.loadCustomVoices())
         bindViews()
         setupSpinners()
         setupSliders()
@@ -168,6 +187,7 @@ class MainActivity : AppCompatActivity() {
         spVoice = findViewById(R.id.spVoice)
         etCustomVoice = findViewById(R.id.etCustomVoice)
         tvVoiceNote = findViewById(R.id.tvVoiceNote)
+        btnCreateVoice = findViewById(R.id.btnCreateVoice)
         etText = findViewById(R.id.etText)
         etInstr = findViewById(R.id.etInstr)
         llChips = findViewById(R.id.llChips)
@@ -200,10 +220,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupSpinners() {
-        val names = voices.map { it.name } + customLabel
-        val voiceAdapter = ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, names)
-        voiceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spVoice.adapter = voiceAdapter
+        rebuildVoiceSpinner(null)
         spVoice.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 syncVoiceUi()
@@ -218,6 +235,23 @@ class MainActivity : AppCompatActivity() {
 
         etModel.setText(store.lastModel)
         syncVoiceUi()
+    }
+
+    /** 全部音色 = 内置 + 自建 */
+    private fun allVoices(): List<Voice> =
+        voices + customVoices.map { Voice(it.name, it.id, "自建音色（前缀 " + it.prefix + "）") }
+
+    /** 重建音色下拉；selectId 不为空时选中它 */
+    private fun rebuildVoiceSpinner(selectId: String?) {
+        val all = allVoices()
+        val names = all.map { it.name } + customLabel
+        val adapter = ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, names)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spVoice.adapter = adapter
+        if (selectId != null) {
+            val idx = all.indexOfFirst { it.id == selectId }
+            if (idx >= 0) spVoice.setSelection(idx)
+        }
     }
 
     private fun setupSliders() {
@@ -244,6 +278,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupActions() {
         btnSettings.setOnClickListener { openSettings() }
+        btnCreateVoice.setOnClickListener { openCreateVoice() }
         btnDice.setOnClickListener { etSeed.setText((0..65535).random().toString()) }
         tvAdvanced.setOnClickListener {
             val show = llAdvanced.visibility != View.VISIBLE
@@ -266,30 +301,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun syncVoiceUi() {
         val idx = spVoice.selectedItemPosition
-        if (idx == voices.size) {
+        val all = allVoices()
+        if (idx == all.size) {
             etCustomVoice.visibility = View.VISIBLE
             tvVoiceNote.text = "粘贴完整音色 ID（cosyvoice-v3.5-plus-…）"
         } else {
             etCustomVoice.visibility = View.GONE
-            tvVoiceNote.text = voices.getOrNull(idx)?.note ?: ""
+            tvVoiceNote.text = all.getOrNull(idx)?.note ?: ""
         }
         renderChips()
     }
 
     private fun selectedVoiceId(): String {
         val idx = spVoice.selectedItemPosition
-        return if (idx == voices.size) {
+        val all = allVoices()
+        return if (idx == all.size) {
             etCustomVoice.text.toString().trim()
         } else {
-            voices.getOrNull(idx)?.id ?: ""
+            all.getOrNull(idx)?.id ?: ""
         }
     }
 
-    private fun voiceNameOf(id: String): String = voices.firstOrNull { it.id == id }?.name ?: "自定义音色"
+    private fun voiceNameOf(id: String): String = allVoices().firstOrNull { it.id == id }?.name ?: "自定义音色"
 
     private fun renderChips() {
         llChips.removeAllViews()
-        val vName = voices.getOrNull(spVoice.selectedItemPosition)?.name ?: ""
+        val vName = allVoices().getOrNull(spVoice.selectedItemPosition)?.name ?: ""
         val list = instrChips.filter { it.forVoice == null || vName.contains(it.forVoice) }
         for (chip in list) {
             val tv = TextView(this)
@@ -710,11 +747,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fillFrom(take: Take) {
-        val idx = voices.indexOfFirst { it.id == take.voiceId }
+        val all = allVoices()
+        val idx = all.indexOfFirst { it.id == take.voiceId }
         if (idx >= 0) {
             spVoice.setSelection(idx)
         } else {
-            spVoice.setSelection(voices.size)
+            spVoice.setSelection(all.size)
             etCustomVoice.setText(take.voiceId)
         }
         syncVoiceUi()
@@ -837,6 +875,267 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    // ---------------------------------------------------------------- 建音色（声音复刻）
+    private fun openCreateVoice() {
+        if (store.apiKey.isBlank()) {
+            toast("请先在「设置」里填写 API Key")
+            openSettings()
+            return
+        }
+        pendingSample = null
+        pendingSampleDurMs = 0L
+        pendingSampleMime = "audio/wav"
+
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(20), dp(8), dp(20), dp(4))
+
+        val tvTip = TextView(this)
+        tvTip.text = "样本要求：干净人声、无背景音乐/杂音；推荐 ≤20 秒（最长 60 秒）；支持 wav / mp3 / m4a 等。"
+        tvTip.setTextColor(cDim)
+        tvTip.textSize = 12f
+        box.addView(tvTip)
+
+        val btnPick = smallBtn("选择音频文件…")
+        btnPick.setOnClickListener { pickAudioFile() }
+        val rowPick = LinearLayout(this)
+        rowPick.orientation = LinearLayout.HORIZONTAL
+        rowPick.setPadding(0, dp(8), 0, 0)
+        rowPick.addView(btnPick)
+        box.addView(rowPick)
+
+        val tvFile = TextView(this)
+        tvFile.text = "未选择样本"
+        tvFile.setTextColor(cDim)
+        tvFile.textSize = 12f
+        tvFile.setPadding(0, dp(4), 0, 0)
+        box.addView(tvFile)
+
+        box.addView(labelView("前缀（用于生成音色 ID；1~10 位小写字母/数字）"))
+        val etPrefix = EditText(this)
+        etPrefix.hint = "如 ailin2"
+        etPrefix.inputType = InputType.TYPE_CLASS_TEXT
+        etPrefix.setTextColor(cTxt)
+        etPrefix.setHintTextColor(cDim)
+        etPrefix.textSize = 14f
+        etPrefix.filters = arrayOf(InputFilter.LengthFilter(10))
+        box.addView(etPrefix)
+
+        box.addView(labelView("显示名称（留空则用前缀）"))
+        val etName = EditText(this)
+        etName.hint = "如：艾丽妮（新版）"
+        etName.inputType = InputType.TYPE_CLASS_TEXT
+        etName.setTextColor(cTxt)
+        etName.setHintTextColor(cDim)
+        etName.textSize = 14f
+        box.addView(etName)
+
+        val tvSt = TextView(this)
+        tvSt.setTextColor(cDim)
+        tvSt.textSize = 12f
+        tvSt.setPadding(0, dp(8), 0, 0)
+        box.addView(tvSt)
+
+        val sc = ScrollView(this)
+        sc.addView(box)
+
+        val dlg = AlertDialog.Builder(this)
+            .setTitle("建音色（声音复刻）")
+            .setView(sc)
+            .setPositiveButton("创建", null)
+            .setNegativeButton("取消", null)
+            .create()
+
+        createDlg = dlg
+        createFileTv = tvFile
+        createStatus = tvSt
+        createPrefixEt = etPrefix
+        createNameEt = etName
+
+        dlg.setOnShowListener {
+            dlg.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener { doCreateVoice() }
+        }
+        dlg.setOnDismissListener {
+            createDlg = null
+            createFileTv = null
+            createStatus = null
+            createPrefixEt = null
+            createNameEt = null
+        }
+        dlg.show()
+    }
+
+    private fun pickAudioFile() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "audio/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        try {
+            startActivityForResult(Intent.createChooser(intent, "选择音频样本"), REQ_PICK_AUDIO)
+        } catch (e: Exception) {
+            toast("没有可用的文件选择器")
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_PICK_AUDIO && resultCode == RESULT_OK) {
+            val uri = data?.data ?: return
+            importSample(uri)
+        }
+    }
+
+    private fun importSample(uri: Uri) {
+        createStatus?.text = "读取样本中…"
+        Thread {
+            var tmp: File? = null
+            try {
+                val dn = displayNameOf(uri) ?: "sample"
+                var mime = contentResolver.getType(uri) ?: ""
+                var ext = dn.substringAfterLast('.', "").lowercase(Locale.US)
+                if (ext !in setOf("wav", "mp3", "m4a", "aac", "ogg", "flac", "opus")) {
+                    ext = when {
+                        mime.startsWith("audio/wav") -> "wav"
+                        mime.startsWith("audio/mpeg") -> "mp3"
+                        mime.startsWith("audio/mp4") -> "m4a"
+                        mime.startsWith("audio/aac") -> "aac"
+                        else -> "wav"
+                    }
+                }
+                mime = when (ext) {
+                    "wav" -> "audio/wav"
+                    "mp3" -> "audio/mpeg"
+                    "m4a" -> "audio/mp4"
+                    "aac" -> "audio/aac"
+                    "ogg", "opus" -> "audio/ogg"
+                    "flac" -> "audio/flac"
+                    else -> if (mime.startsWith("audio/")) mime else "audio/wav"
+                }
+                val dst = File(cacheDir, "voice_sample_" + System.currentTimeMillis() + "." + ext)
+                tmp = dst
+                val ins = contentResolver.openInputStream(uri) ?: throw Exception("无法打开所选文件")
+                ins.use { input ->
+                    dst.outputStream().use { out ->
+                        val buf = ByteArray(256 * 1024)
+                        var total = 0L
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            total += n
+                            if (total > MAX_SAMPLE_BYTES) {
+                                throw Exception("文件过大（超过 " + (MAX_SAMPLE_BYTES / 1024 / 1024) + " MB）")
+                            }
+                            out.write(buf, 0, n)
+                        }
+                    }
+                }
+                val durMs = probeDurationMs(dst)
+                pendingSample = dst
+                pendingSampleDurMs = durMs
+                pendingSampleMime = mime
+                ui {
+                    createFileTv?.text = dn + " · " + (if (durMs > 0) fmtDur(durMs) else "时长未知") +
+                            " · " + (dst.length() / 1024) + " KB"
+                    createStatus?.text = when {
+                        durMs > 60000 -> "⚠️ 样本超过 60 秒，请先裁剪再创建（建议 ≤20 秒）"
+                        durMs > 20000 -> "⚠️ 样本超过 20 秒，仍可创建（建议 ≤20 秒效果更佳）"
+                        else -> ""
+                    }
+                    if ((createPrefixEt?.text?.toString() ?: "").isBlank()) {
+                        createPrefixEt?.setText(suggestPrefix(dn))
+                    }
+                }
+            } catch (e: Exception) {
+                tmp?.delete()
+                pendingSample = null
+                ui { createStatus?.text = "❌ 读取失败：" + (e.message ?: "") }
+            }
+        }.start()
+    }
+
+    private fun displayNameOf(uri: Uri): String? {
+        return try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (i >= 0) c.getString(i) else null
+                } else {
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun suggestPrefix(name: String): String {
+        var base = name.substringBeforeLast('.', name).lowercase(Locale.US)
+            .filter { it in 'a'..'z' || it in '0'..'9' }
+            .take(10)
+        if (base.isNotEmpty() && base[0] in '0'..'9') base = "v" + base.take(9)
+        return base.ifEmpty { "v" + System.currentTimeMillis().toString().takeLast(5) }
+    }
+
+    private fun doCreateVoice() {
+        val sample = pendingSample ?: run {
+            createStatus?.text = "❌ 请先选择音频样本"
+            return
+        }
+        if (!sample.exists()) {
+            createStatus?.text = "❌ 样本文件不存在，请重新选择"
+            return
+        }
+        if (pendingSampleDurMs > 60000) {
+            createStatus?.text = "❌ 样本超过 60 秒，请先裁剪后再来（建议 ≤20 秒）"
+            return
+        }
+        val prefix = (createPrefixEt?.text?.toString() ?: "").trim().lowercase(Locale.US)
+        if (!Regex("^[a-z0-9]{1,10}$").matches(prefix)) {
+            createStatus?.text = "❌ 前缀需为 1~10 位小写字母/数字"
+            return
+        }
+        val name = (createNameEt?.text?.toString() ?: "").trim().ifEmpty { prefix }
+        val key = store.apiKey.trim()
+        if (key.isEmpty()) {
+            createStatus?.text = "❌ 请先在「设置」里填写 API Key"
+            return
+        }
+        val ws = store.workspace.trim().ifEmpty { "ws-9y8n1gp7w6pg23tv" }
+        val model = store.lastModel.trim().ifEmpty { "cosyvoice-v3.5-plus" }
+        val posBtn = createDlg?.getButton(DialogInterface.BUTTON_POSITIVE)
+        posBtn?.isEnabled = false
+        createStatus?.text = "编码样本…"
+
+        Thread {
+            try {
+                val b64 = Base64.encodeToString(sample.readBytes(), Base64.NO_WRAP)
+                val dataUri = "data:" + pendingSampleMime + ";base64," + b64
+                ui { createStatus?.text = "上传创建中…（几秒到几十秒）" }
+                client.createVoice(key, ws, model, prefix, dataUri, onResult = { vid ->
+                    ui {
+                        customVoices.add(CustomVoice(vid, name, prefix, System.currentTimeMillis()))
+                        store.saveCustomVoices(customVoices)
+                        rebuildVoiceSpinner(vid)
+                        syncVoiceUi()
+                        createDlg?.dismiss()
+                        toast("✅ 音色已创建：" + name)
+                        tvStatus.text = "✅ 音色已创建并选中：" + name
+                    }
+                }, onError = { msg ->
+                    ui {
+                        createStatus?.text = "❌ " + msg
+                        posBtn?.isEnabled = true
+                    }
+                })
+            } catch (e: Exception) {
+                ui {
+                    createStatus?.text = "❌ " + (e.message ?: "创建失败")
+                    posBtn?.isEnabled = true
+                }
+            }
+        }.start()
     }
 
     // ---------------------------------------------------------------- 小工具
