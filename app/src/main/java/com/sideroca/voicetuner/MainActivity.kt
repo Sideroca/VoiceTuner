@@ -35,6 +35,7 @@ import androidx.core.content.FileProvider
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
+import java.io.RandomAccessFile
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -153,6 +154,7 @@ class MainActivity : AppCompatActivity() {
         setupActions()
 
         takes.addAll(store.loadTakes())
+        migrateDurations()
         renderHistory()
 
         if (store.apiKey.isBlank()) {
@@ -453,6 +455,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveTake(req: SynthRequest, fmt: Fmt, audio: ByteArray): Take {
         val file = store.newAudioFile(fmt.ext)
         file.writeBytes(audio)
+        fixWavHeader(file)
         val take = Take(
             id = file.nameWithoutExtension,
             fileName = file.name,
@@ -484,7 +487,7 @@ class MainActivity : AppCompatActivity() {
         cardResult.visibility = View.VISIBLE
         tvResultInfo.text = take.voiceName + " · " + take.format + " · 语速 " + fmtNum(take.rate) +
                 " · 音调 " + fmtNum(take.pitch) + " · 音量 " + take.volume +
-                " · 🎲 " + take.seed + " · " + fmtDur(take.durationMs)
+                " · 🎲 " + take.seed + " · 时长 " + fmtDur(take.durationMs)
         renderHistory()
         startPlayback(take)
     }
@@ -665,7 +668,7 @@ class MainActivity : AppCompatActivity() {
         val time = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(Date(take.createdAt))
         meta.text = time + " · " + take.voiceName + " · " + take.format +
                 " · 语速" + fmtNum(take.rate) + " 音调" + fmtNum(take.pitch) + " 音量" + take.volume +
-                " · 🎲" + take.seed + " · " + fmtDur(take.durationMs)
+                " · 🎲" + take.seed + " · 时长 " + fmtDur(take.durationMs)
         meta.setTextColor(cDim)
         meta.textSize = 12f
         meta.setPadding(0, dp(3), 0, dp(6))
@@ -874,9 +877,14 @@ class MainActivity : AppCompatActivity() {
     private fun fmtNum(v: Double): String = String.format(Locale.US, "%.2f", v)
 
     private fun fmtDur(ms: Long): String =
-        if (ms <= 0) "时长未知" else String.format(Locale.US, "%.1f 秒", ms / 1000.0)
+        if (ms <= 0) "未知" else String.format(Locale.US, "%.1f 秒", ms / 1000.0)
 
     private fun probeDurationMs(file: File): Long {
+        // WAV 按文件实际长度自己算：服务端头里的 size 是 ≈2GB 流式占位值，
+        // 系统解析会得出 "44739.2 秒" 这种离谱数字（2147483547 ÷ 48000）
+        if (file.name.endsWith(".wav", ignoreCase = true)) {
+            wavDurationMs(file)?.let { return it }
+        }
         return try {
             val r = MediaMetadataRetriever()
             r.setDataSource(file.absolutePath)
@@ -886,6 +894,102 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             0L
         }
+    }
+
+    /** 解析 WAV 头求时长（data 块按文件实际剩余长度截断）；失败返回 null 交给系统兜底 */
+    private fun wavDurationMs(file: File): Long? {
+        return try {
+            RandomAccessFile(file, "r").use { raf ->
+                val len = raf.length()
+                if (len < 44) return null
+                val head = ByteArray(minOf(len, 4096L).toInt())
+                raf.readFully(head)
+                if (String(head, 0, 4, Charsets.US_ASCII) != "RIFF" ||
+                    String(head, 8, 4, Charsets.US_ASCII) != "WAVE") return null
+                var byteRate = 0L
+                var dataOffset = -1L
+                var p = 12
+                while (p + 8 <= head.size) {
+                    val id = String(head, p, 4, Charsets.US_ASCII)
+                    val sz = u32(head, p + 4)
+                    if (id == "fmt ") {
+                        if (sz >= 16 && p + 20 <= head.size) byteRate = u32(head, p + 16)
+                    } else if (id == "data") {
+                        dataOffset = (p + 8).toLong()
+                        break
+                    }
+                    if (sz > head.size.toLong()) break
+                    p += 8 + sz.toInt() + (sz.toInt() and 1)
+                }
+                if (byteRate <= 0 || dataOffset < 0 || dataOffset >= len) return null
+                (len - dataOffset) * 1000 / byteRate
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** 把 WAV 头里的流式占位大小改写为真实大小（导出/分享后其他播放器也能显示正确时长） */
+    private fun fixWavHeader(file: File) {
+        try {
+            RandomAccessFile(file, "rw").use { raf ->
+                val len = raf.length()
+                if (len < 44) return
+                val head = ByteArray(minOf(len, 4096L).toInt())
+                raf.readFully(head)
+                if (String(head, 0, 4, Charsets.US_ASCII) != "RIFF" ||
+                    String(head, 8, 4, Charsets.US_ASCII) != "WAVE") return
+                if (u32(head, 4) != len - 8) writeU32(raf, 4L, len - 8)
+                var p = 12
+                while (p + 8 <= head.size) {
+                    val id = String(head, p, 4, Charsets.US_ASCII)
+                    val sz = u32(head, p + 4)
+                    if (id == "data") {
+                        val actual = len - (p + 8)
+                        if (sz != actual) writeU32(raf, (p + 4).toLong(), actual)
+                        break
+                    }
+                    if (sz > head.size.toLong()) break
+                    p += 8 + sz.toInt() + (sz.toInt() and 1)
+                }
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
+    /** 修正旧记录里离谱的时长：重算 + 修头（一次性，之后无需重复） */
+    private fun migrateDurations() {
+        var fixed = false
+        for (i in takes.indices) {
+            val t = takes[i]
+            if (!t.format.startsWith("wav")) continue
+            val f = store.fileOf(t)
+            if (!f.exists()) continue
+            fixWavHeader(f)
+            val d = probeDurationMs(f)
+            if (d > 0 && d != t.durationMs) {
+                takes[i] = t.copy(durationMs = d)
+                fixed = true
+            }
+        }
+        if (fixed) store.saveTakes(takes)
+    }
+
+    private fun u32(b: ByteArray, off: Int): Long =
+        (b[off].toLong() and 0xFF) or ((b[off + 1].toLong() and 0xFF) shl 8) or
+            ((b[off + 2].toLong() and 0xFF) shl 16) or ((b[off + 3].toLong() and 0xFF) shl 24)
+
+    private fun writeU32(raf: RandomAccessFile, off: Long, v: Long) {
+        raf.seek(off)
+        raf.write(
+            byteArrayOf(
+                (v and 0xFF).toByte(),
+                ((v shr 8) and 0xFF).toByte(),
+                ((v shr 16) and 0xFF).toByte(),
+                ((v shr 24) and 0xFF).toByte()
+            )
+        )
     }
 
     override fun onDestroy() {
