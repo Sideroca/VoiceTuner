@@ -859,12 +859,12 @@ class MainActivity : AppCompatActivity() {
         box.setPadding(dp(20), dp(8), dp(20), dp(4))
 
         val tvTip = TextView(this)
-        tvTip.text = "样本要求：干净人声、无背景音乐/杂音；推荐 ≤20 秒（最长 60 秒）；支持 wav / mp3 / m4a 等。"
+        tvTip.text = "样本要求：干净人声、无背景音乐/杂音；可一次选多个文件（数量不限，App 自动合并）；支持 wav / mp3 / m4a 等。官方建议：10~20 秒，最长 60 秒。"
         tvTip.setTextColor(cDim)
         tvTip.textSize = 12f
         box.addView(tvTip)
 
-        val btnPick = smallBtn("选择音频文件…")
+        val btnPick = smallBtn("选择音频文件…（可多选）")
         btnPick.setOnClickListener { pickAudioFile() }
         val rowPick = LinearLayout(this)
         rowPick.orientation = LinearLayout.HORIZONTAL
@@ -935,12 +935,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun pickAudioFile() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             type = "audio/*"
             addCategory(Intent.CATEGORY_OPENABLE)
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         }
         try {
-            startActivityForResult(Intent.createChooser(intent, "选择音频样本"), REQ_PICK_AUDIO)
+            startActivityForResult(intent, REQ_PICK_AUDIO)
         } catch (e: Exception) {
             toast("没有可用的文件选择器")
         }
@@ -949,9 +950,55 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQ_PICK_AUDIO && resultCode == RESULT_OK) {
-            val uri = data?.data ?: return
-            importSample(uri)
+            val list = ArrayList<Uri>()
+            val clip = data?.clipData
+            if (clip != null) {
+                for (i in 0 until clip.itemCount) list.add(clip.getItemAt(i).uri)
+            } else {
+                data?.data?.let { list.add(it) }
+            }
+            if (list.isNotEmpty()) importSamples(list)
         }
+    }
+
+    /** 多选入口：单个→原流程直传；多个→本地合并为一个 WAV 再走原流程（数量不限） */
+    private fun importSamples(uris: List<Uri>) {
+        if (uris.size == 1) {
+            importSample(uris[0])
+            return
+        }
+        createStatus?.text = "合并中…（共 " + uris.size + " 个文件）"
+        Thread {
+            try {
+                val dst = File(cacheDir, "voice_merged_" + System.currentTimeMillis() + ".wav")
+                val r = AudioMerge.merge(this, uris, dst) { i, n ->
+                    ui { createStatus?.text = "合并中… " + i + "/" + n }
+                }
+                if (r == null || r.ok == 0) {
+                    dst.delete()
+                    ui { createStatus?.text = "❌ 合并失败：没有可解析的音频文件（支持 wav / mp3 / m4a 等）" }
+                } else {
+                    pendingSample = dst
+                    pendingSampleDurMs = r.durMs
+                    pendingSampleMime = "audio/wav"
+                    ui {
+                        val failNote = if (r.fail > 0) "（" + r.fail + " 个无法解析，已跳过）" else ""
+                        createFileTv?.text = "已合并 " + r.ok + " 个文件" + failNote + " · " +
+                                fmtDur(r.durMs) + " · " + (dst.length() / 1024) + " KB"
+                        createStatus?.text = when {
+                            r.durMs > 60000 -> "⚠️ 合并后总时长超过 60 秒（官方建议 ≤60 秒），可能创建失败"
+                            r.durMs > 20000 -> "⚠️ 合并后超过 20 秒，仍可创建（官方推荐 10~20 秒）"
+                            else -> "✅ 素材就绪"
+                        }
+                        if ((createPrefixEt?.text?.toString() ?: "").isBlank()) {
+                            createPrefixEt?.setText(suggestPrefix(displayNameOf(uris[0]) ?: "merged"))
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                ui { createStatus?.text = "❌ 合并失败：" + (e.message ?: "") }
+            }
+        }.start()
     }
 
     private fun importSample(uri: Uri) {
@@ -1006,8 +1053,8 @@ class MainActivity : AppCompatActivity() {
                     createFileTv?.text = dn + " · " + (if (durMs > 0) fmtDur(durMs) else "时长未知") +
                             " · " + (dst.length() / 1024) + " KB"
                     createStatus?.text = when {
-                        durMs > 60000 -> "⚠️ 样本超过 60 秒，请先裁剪再创建（建议 ≤20 秒）"
-                        durMs > 20000 -> "⚠️ 样本超过 20 秒，仍可创建（建议 ≤20 秒效果更佳）"
+                        durMs > 60000 -> "⚠️ 样本超过 60 秒（官方建议 ≤60 秒），请先裁剪（推荐 10~20 秒）"
+                        durMs > 20000 -> "⚠️ 样本超过 20 秒，仍可创建（官方推荐 10~20 秒）"
                         else -> ""
                     }
                     if ((createPrefixEt?.text?.toString() ?: "").isBlank()) {
@@ -1054,8 +1101,8 @@ class MainActivity : AppCompatActivity() {
             createStatus?.text = "❌ 样本文件不存在，请重新选择"
             return
         }
-        if (pendingSampleDurMs > 60000) {
-            createStatus?.text = "❌ 样本超过 60 秒，请先裁剪后再来（建议 ≤20 秒）"
+        if (pendingSampleDurMs > 300000) {
+            createStatus?.text = "❌ 样本超过 5 分钟，请减少素材后再来（官方建议 ≤60 秒）"
             return
         }
         val prefix = (createPrefixEt?.text?.toString() ?: "").trim().lowercase(Locale.US)
