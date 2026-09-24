@@ -101,6 +101,31 @@ class Store(context: Context) {
         get() = prefs.getString("model", "cosyvoice-v3.5-plus") ?: "cosyvoice-v3.5-plus"
         set(v) { prefs.edit().putString("model", v).apply() }
 
+    // ---- v0.3：主题 / 壁纸 ----
+    var themeId: String
+        get() = prefs.getString("themeId", "") ?: ""
+        set(v) { prefs.edit().putString("themeId", v).apply() }
+
+    var wpMain: String
+        get() = prefs.getString("wpMain", "") ?: ""
+        set(v) { prefs.edit().putString("wpMain", v).apply() }
+
+    var wpPage: String
+        get() = prefs.getString("wpPage", "") ?: ""
+        set(v) { prefs.edit().putString("wpPage", v).apply() }
+
+    var scrimMain: Int
+        get() = prefs.getInt("scrimMain", 35)
+        set(v) { prefs.edit().putInt("scrimMain", v).apply() }
+
+    var scrimPage: Int
+        get() = prefs.getInt("scrimPage", 35)
+        set(v) { prefs.edit().putInt("scrimPage", v).apply() }
+
+    var cardAlphaPct: Int
+        get() = prefs.getInt("cardAlpha", 100)
+        set(v) { prefs.edit().putInt("cardAlpha", v).apply() }
+
     fun newAudioFile(ext: String): File =
         File(dir, "vt_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().take(6) + "." + ext)
 

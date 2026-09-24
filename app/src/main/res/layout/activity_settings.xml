@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/wpImg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/wpScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnBack"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_btn"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="8dp"
+                    android:text="←"
+                    android:textColor="@color/dim"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:text="设置"
+                    android:textColor="@color/txt"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 接口 -->
+            <LinearLayout style="@style/VtCard">
+
+                <TextView style="@style/VtLabel" android:text="API Key（仅保存在本机）" />
+
+                <EditText
+                    android:id="@+id/etKey"
+                    style="@style/VtInput"
+                    android:hint="sk-ws-…"
+                    android:importantForAutofill="no"
+                    android:inputType="textVisiblePassword"
+                    android:singleLine="true" />
+
+                <TextView style="@style/VtLabel" android:text="业务空间 ID" />
+
+                <EditText
+                    android:id="@+id/etWs"
+                    style="@style/VtInput"
+                    android:hint="ws-xxxxxxxx"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:singleLine="true" />
+
+                <TextView style="@style/VtLabel" android:text="默认 model" />
+
+                <EditText
+                    android:id="@+id/etModel"
+                    style="@style/VtInput"
+                    android:hint="cosyvoice-v3.5-plus"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:singleLine="true" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btnPaste"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="📋 粘贴剪贴板"
+                        android:textColor="@color/txt"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/btnSaveKey"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="保存接口设置"
+                        android:textColor="@color/txt"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 主题 -->
+            <LinearLayout style="@style/VtCard">
+
+                <TextView style="@style/VtLabel" android:text="主题配色（点选即换）" />
+
+                <LinearLayout
+                    android:id="@+id/llCats"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal" />
+
+                <LinearLayout
+                    android:id="@+id/llPalettes"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <!-- 壁纸 -->
+            <LinearLayout style="@style/VtCard">
+
+                <TextView style="@style/VtLabel" android:text="主界面壁纸" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btnWpMain"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="选择图片"
+                        android:textColor="@color/txt"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/btnWpMainClear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="清除"
+                        android:textColor="@color/dim"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvWpMainState"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="未设置"
+                        android:textColor="@color/dim"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout style="@style/VtSliderRow">
+                    <TextView style="@style/VtSliderLabel" android:text="遮罩" />
+                    <SeekBar
+                        android:id="@+id/sbScrimMain"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="80" />
+                    <TextView
+                        android:id="@+id/tvScrimMain"
+                        style="@style/VtSliderValue"
+                        android:text="35%" />
+                </LinearLayout>
+
+                <TextView style="@style/VtLabel" android:text="设置页壁纸" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btnWpPage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="选择图片"
+                        android:textColor="@color/txt"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/btnWpPageClear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:background="@drawable/bg_btn"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="8dp"
+                        android:text="清除"
+                        android:textColor="@color/dim"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvWpPageState"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:text="未设置"
+                        android:textColor="@color/dim"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout style="@style/VtSliderRow">
+                    <TextView style="@style/VtSliderLabel" android:text="遮罩" />
+                    <SeekBar
+                        android:id="@+id/sbScrimPage"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="80" />
+                    <TextView
+                        android:id="@+id/tvScrimPage"
+                        style="@style/VtSliderValue"
+                        android:text="35%" />
+                </LinearLayout>
+
+                <LinearLayout style="@style/VtSliderRow">
+                    <TextView style="@style/VtSliderLabel" android:text="卡片" />
+                    <SeekBar
+                        android:id="@+id/sbCardAlpha"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:max="100"
+                        android:min="30" />
+                    <TextView
+                        android:id="@+id/tvCardAlpha"
+                        style="@style/VtSliderValue"
+                        android:text="100%" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/btnWpReset"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_btn"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:padding="11dp"
+                    android:text="恢复默认（壁纸与浓度）"
+                    android:textColor="@color/dim"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- 关于 -->
+            <LinearLayout style="@style/VtCard">
+
+                <TextView style="@style/VtLabel" android:text="关于" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:lineSpacingExtra="3dp"
+                    android:text="语音调控台 v0.3 · 桌面名「玲珑调音」\n直连阿里云百炼 CosyVoice v3.5-plus · 支持自建音色\n配色方案：现代经典 18 + 中国传统色 46（共 64 套）\n主题与壁纸均只保存在本机"
+                    android:textColor="@color/dim"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="20dp"
+                android:gravity="center"
+                android:text="v0.3 · 语音调控台（玲珑调音）"
+                android:textColor="@color/hint"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

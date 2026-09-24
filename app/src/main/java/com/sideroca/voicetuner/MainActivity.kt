@@ -26,6 +26,7 @@ import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -125,6 +126,8 @@ class MainActivity : AppCompatActivity() {
     private var busy = false
 
     // ---------------------------------------------------------------- 视图
+    private lateinit var wpImg: ImageView
+    private lateinit var wpScrim: View
     private lateinit var svRoot: ScrollView
     private lateinit var btnSettings: TextView
     private lateinit var spVoice: Spinner
@@ -179,10 +182,28 @@ class MainActivity : AppCompatActivity() {
         if (store.apiKey.isBlank()) {
             tvStatus.text = "首次使用：请点右上角「设置」填入 API Key（可从剪贴板粘贴）"
         }
+        applyLook()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyLook()
+        // 设置页改过「默认 model」时同步到高级参数
+        if (etModel.text.toString() != store.lastModel) etModel.setText(store.lastModel)
+    }
+
+    /** v0.3：主题 + 壁纸统一入口（设置页改完回来即生效） */
+    private fun applyLook() {
+        val c = Skin.colors(this)
+        Skin.applyWindow(this, c)
+        Skin.apply(window.decorView, c)
+        Wp.applySlot(this, wpImg, wpScrim, store.wpMain, store.scrimMain, c.bg)
     }
 
     private fun bindViews() {
         svRoot = findViewById(R.id.svRoot)
+        wpImg = findViewById(R.id.wpImg)
+        wpScrim = findViewById(R.id.wpScrim)
         btnSettings = findViewById(R.id.btnSettings)
         spVoice = findViewById(R.id.spVoice)
         etCustomVoice = findViewById(R.id.etCustomVoice)
@@ -354,6 +375,7 @@ class MainActivity : AppCompatActivity() {
         clear.isFocusable = true
         clear.setOnClickListener { etInstr.setText("") }
         llChips.addView(clear)
+        Skin.apply(llChips, Skin.colors(this))
     }
 
     // ---------------------------------------------------------------- 生成
@@ -684,12 +706,14 @@ class MainActivity : AppCompatActivity() {
         for (t in takes) {
             llHistory.addView(buildRow(t))
         }
+        Skin.apply(llHistory, Skin.colors(this))
     }
 
     private fun buildRow(take: Take): View {
         val row = LinearLayout(this)
         row.orientation = LinearLayout.VERTICAL
         row.background = ContextCompat.getDrawable(this, R.drawable.bg_row)
+        row.tag = "r:row"
         row.setPadding(dp(12), dp(10), dp(12), dp(10))
         val rlp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         rlp.topMargin = dp(8)
@@ -767,7 +791,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmDelete(take: Take) {
-        AlertDialog.Builder(this)
+        val dlg = AlertDialog.Builder(this)
             .setTitle("删除这条记录？")
             .setMessage(take.text.take(60))
             .setPositiveButton("删除") { _, _ ->
@@ -784,7 +808,9 @@ class MainActivity : AppCompatActivity() {
                 toast("已删除")
             }
             .setNegativeButton("取消", null)
-            .show()
+            .create()
+        dlg.setOnShowListener { Skin.apply(dlg.window!!.decorView, Skin.colors(this)) }
+        dlg.show()
     }
 
     private fun confirmClearHistory() {
@@ -792,7 +818,7 @@ class MainActivity : AppCompatActivity() {
             toast("没有记录")
             return
         }
-        AlertDialog.Builder(this)
+        val dlg = AlertDialog.Builder(this)
             .setTitle("清空全部记录？")
             .setMessage("将删除 " + takes.size + " 条记录及其音频文件")
             .setPositiveButton("清空") { _, _ ->
@@ -807,74 +833,14 @@ class MainActivity : AppCompatActivity() {
                 toast("已清空")
             }
             .setNegativeButton("取消", null)
-            .show()
+            .create()
+        dlg.setOnShowListener { Skin.apply(dlg.window!!.decorView, Skin.colors(this)) }
+        dlg.show()
     }
 
-    // ---------------------------------------------------------------- 设置
+    // ---------------------------------------------------------------- 设置（v0.3：独立设置页）
     private fun openSettings() {
-        val box = LinearLayout(this)
-        box.orientation = LinearLayout.VERTICAL
-        box.setPadding(dp(20), dp(10), dp(20), dp(4))
-
-        val etKey = EditText(this)
-        etKey.hint = "sk-ws-…"
-        etKey.setText(store.apiKey)
-        etKey.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-        etKey.setTextColor(cTxt)
-        etKey.setHintTextColor(cDim)
-        etKey.textSize = 14f
-
-        val btnPaste = smallBtn("📋 粘贴剪贴板")
-        btnPaste.setOnClickListener {
-            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-            val clip = cm?.primaryClip
-            if (clip != null && clip.itemCount > 0) {
-                etKey.setText(clip.getItemAt(0).coerceToText(this).toString().trim())
-                toast("已粘贴")
-            } else {
-                toast("剪贴板为空")
-            }
-        }
-
-        val etWs = EditText(this)
-        etWs.hint = "ws-xxxxxxxx"
-        etWs.setText(store.workspace)
-        etWs.inputType = InputType.TYPE_CLASS_TEXT
-        etWs.setTextColor(cTxt)
-        etWs.setHintTextColor(cDim)
-        etWs.textSize = 14f
-
-        val etModelDlg = EditText(this)
-        etModelDlg.hint = "cosyvoice-v3.5-plus"
-        etModelDlg.setText(store.lastModel)
-        etModelDlg.inputType = InputType.TYPE_CLASS_TEXT
-        etModelDlg.setTextColor(cTxt)
-        etModelDlg.setHintTextColor(cDim)
-        etModelDlg.textSize = 14f
-
-        box.addView(labelView("API Key（仅保存在本机）"))
-        box.addView(etKey)
-        box.addView(btnPaste)
-        box.addView(labelView("业务空间 ID"))
-        box.addView(etWs)
-        box.addView(labelView("默认 model"))
-        box.addView(etModelDlg)
-
-        val sc = ScrollView(this)
-        sc.addView(box)
-
-        AlertDialog.Builder(this)
-            .setTitle("设置")
-            .setView(sc)
-            .setPositiveButton("保存") { _, _ ->
-                store.apiKey = etKey.text.toString().trim()
-                store.workspace = etWs.text.toString().trim()
-                store.lastModel = etModelDlg.text.toString().trim()
-                etModel.setText(store.lastModel)
-                toast("已保存")
-            }
-            .setNegativeButton("取消", null)
-            .show()
+        startActivity(Intent(this, SettingsActivity::class.java))
     }
 
     // ---------------------------------------------------------------- 建音色（声音复刻）
@@ -956,6 +922,7 @@ class MainActivity : AppCompatActivity() {
 
         dlg.setOnShowListener {
             dlg.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener { doCreateVoice() }
+            Skin.apply(dlg.window!!.decorView, Skin.colors(this))
         }
         dlg.setOnDismissListener {
             createDlg = null

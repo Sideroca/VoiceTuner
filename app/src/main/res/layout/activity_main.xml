@@ -1,10 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/svRoot"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:scrollbars="none">
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/wpImg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/wpScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <ScrollView
+        android:id="@+id/svRoot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -435,8 +452,9 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="20dp"
             android:gravity="center"
-            android:text="v0.2 · 直连阿里云百炼 CosyVoice v3.5-plus · 支持自建音色"
+            android:text="v0.3 · 直连阿里云百炼 CosyVoice v3.5-plus"
             android:textColor="@color/hint"
             android:textSize="11sp" />
     </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</FrameLayout>
