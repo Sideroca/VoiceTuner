@@ -58,6 +58,7 @@ class DashScopeClient {
 
     private val wsClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS) // WebSocket：读超时置空，避免长文本合成期间被误断
         .build()
 
     private val httpClient: OkHttpClient = OkHttpClient.Builder()

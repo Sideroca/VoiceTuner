@@ -353,8 +353,11 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val seed = seedOverride ?: etSeed.text.toString().trim().toIntOrNull() ?: (0..65535).random()
-        etSeed.setText(seed.toString())
+        val seed = (seedOverride ?: etSeed.text.toString().trim().toIntOrNull() ?: (0..65535).random()).coerceIn(0, 65535)
+        // 留空 = 每次随机，不回填；仅「重抽」时回填实际种子
+        if (seedOverride != null) {
+            etSeed.setText(seed.toString())
+        }
 
         val fmt = formats[spFormat.selectedItemPosition.coerceIn(0, formats.size - 1)]
         val instr = etInstr.text.toString().trim().take(128)
