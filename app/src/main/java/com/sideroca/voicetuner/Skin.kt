@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CompoundButton
@@ -198,6 +200,13 @@ object Skin {
     fun shapeDp(ctx: Context, fill: Int, stroke: Int?, radiusDp: Float, alphaPct: Int = 100, strokeDp: Float = 1f): GradientDrawable {
         val d = ctx.resources.displayMetrics.density
         return shape(fill, stroke, radiusDp * d, alphaPct, strokeDp * d)
+    }
+
+    /** 弹窗面板：卡片色圆角底板 + 轻描边，四周留外距（窗口内容按同样边距内缩） */
+    fun dialogPanel(ctx: Context, c: Colors): Drawable {
+        val d = ctx.resources.displayMetrics.density
+        val panel = shape(c.card, c.line, 18f * d, 100, d)
+        return InsetDrawable(panel, (24 * d).toInt(), (20 * d).toInt(), (24 * d).toInt(), (20 * d).toInt())
     }
 
     fun shape(fill: Int, stroke: Int?, radiusPx: Float, alphaPct: Int, strokePx: Float): GradientDrawable {

@@ -453,7 +453,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .create()
-        dlg.setOnShowListener { Skin.apply(dlg.window!!.decorView, Skin.colors(this)) }
+        dlg.setOnShowListener { skinDialog(dlg) }
         dlg.show()
     }
 
@@ -492,6 +492,19 @@ class MainActivity : AppCompatActivity() {
     private fun applyLangSel() {
         val names = langSel.map { code -> langPresets.firstOrNull { it.first == code }?.second ?: code }
         etLangHints.text = names.joinToString("、")
+    }
+
+    /** 弹窗统一换肤：面板 / 标题 / 正文 / 按钮 */
+    private fun skinDialog(dlg: AlertDialog) {
+        val c = Skin.colors(this)
+        Skin.apply(dlg.window!!.decorView, c)
+        dlg.window?.setBackgroundDrawable(Skin.dialogPanel(this, c))
+        val titleId = resources.getIdentifier("alertTitle", "id", "android")
+        if (titleId != 0) dlg.findViewById<TextView>(titleId)?.setTextColor(c.txt)
+        dlg.findViewById<TextView>(android.R.id.message)?.setTextColor(c.dim)
+        dlg.getButton(DialogInterface.BUTTON_POSITIVE)?.setTextColor(c.acc)
+        dlg.getButton(DialogInterface.BUTTON_NEGATIVE)?.setTextColor(c.dim)
+        dlg.getButton(DialogInterface.BUTTON_NEUTRAL)?.setTextColor(c.dim)
     }
 
     // ---------------------------------------------------------------- 生成
@@ -921,7 +934,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .create()
-        dlg.setOnShowListener { Skin.apply(dlg.window!!.decorView, Skin.colors(this)) }
+        dlg.setOnShowListener { skinDialog(dlg) }
         dlg.show()
     }
 
@@ -946,7 +959,7 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .create()
-        dlg.setOnShowListener { Skin.apply(dlg.window!!.decorView, Skin.colors(this)) }
+        dlg.setOnShowListener { skinDialog(dlg) }
         dlg.show()
     }
 
@@ -1034,7 +1047,7 @@ class MainActivity : AppCompatActivity() {
 
         dlg.setOnShowListener {
             dlg.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener { doCreateVoice() }
-            Skin.apply(dlg.window!!.decorView, Skin.colors(this))
+            skinDialog(dlg)
         }
         dlg.setOnDismissListener {
             createDlg = null
